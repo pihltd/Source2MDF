@@ -1,0 +1,31 @@
+# Source sheet, can be XLSX or CSV
+source_sheet_type: xlsx
+# Single or multi accepted.  
+source_sheet_count:
+# Source_sheet_delimiter is needed only if using CSV.  Can be tab or comma.
+source_sheet_delimiter: tab
+#Full path to file
+source_sheet_file:
+mappings:
+  # In a multi-tab spreadsheet, list all tabs to be ignored
+  excluded_tabs:
+  - 'README'
+  # Mappings are the column name in the source.  If 'tab' is used for nodes, the xlsx worksheet tab name is used.  Use None to ignore
+  #Nodes:  Just need to know the node names
+  nodes: 'tab'
+  #Properties:  Need to get property names, CDE ID and version, and required status.  Enums as well.
+  properties:
+    property_name: 'Property'
+    property_req: 'Required/optional'
+    cde_id: 'Recommended CDE'
+    cde_version: 'CDE Ver'
+    enums: None
+  # For edges need to have the tab, source column, destination column and cardinality
+  edge_info:
+    edge_info_source: 'Relatinoships between nodes'
+    edge_src: 'Destination Node'
+    edge_dst: 'Source Node'
+    edge_card: 'Cardinaltity'
+model_info:
+  handle: 'NCIISM'
+  version: '0.0.1'

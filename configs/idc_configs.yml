@@ -1,0 +1,116 @@
+excelfile: '2026-5-26-Imaging submission data model.xlsx'
+#csvfile: '2025-09-26 all nodes and properties.csv'
+workingpath: '/media/sf_VMShare/IDCModel/'
+loadsheetpath: '/media/sf_VMShare/IDCModel/loadsheets/'
+excludetabs: 
+  - 'Schema'
+  - 'Changes'
+  - 'DELETED - Test'
+  - 'DELETED - Recordset'
+edgesheet: 'Relationships between nodes'
+handle: NCIISM
+version: '0.0.4'
+#mdffile: 'nci_imaging_submission_model.yml'
+mdffiles:
+  - Model: 'nci_imaging_submission_model.yml'
+  - PropDefinitions: 'nci_imaging_submission_model_properties.yml'
+  - Terms: 'nci_imaging_submission_model_terms.yml'
+#edges:
+#  - handle: of_dataset
+#    desc: "Dataset reltaed information"
+#    #props: None
+#    mul: one_to_many
+#    ends:
+#      - src: Dataset
+#        dst: Investigator
+#      - src: Dataset
+#        dst: Related_Work
+#  - handle: of_procedure
+#    desc: "Procudure related data"
+#    #props: None
+#    mul: one_to_many
+#    ends:
+#      - src: Procedure
+#        dst: Diagnosis
+#      - src: Procedure
+#        dst: Radiology
+#      - src: Procedure
+#        dst: Histopathology
+#      - src: Procedure
+#        dst: Multiplex_Imaging
+#  - handle: has_channels
+#    desc: 'Multiplex Imaging channels'
+#    #props: None
+#    mul: one_to_many
+#    ends:
+#      - src: Multiplex_Channels
+#        dst: Multiplex_Imaging
+tags:
+  - node: Program
+    nodeReq: True
+    category: 'administrative'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Dataset
+    nodeReq: True
+    category: 'study'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Subject
+    nodeReq: True
+    category: 'case'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Procedure
+    nodeReq: True
+    category: 'case'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: File
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Diagnosis
+    nodeReq: True
+    category: 'case'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Investigator
+    nodeReq: True
+    category: 'administrative'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Related_Work
+    nodeReq: True
+    category: 'administrative'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Radiology
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+  - node: Histopathology
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+  - node: Multiplex_Imaging
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+  - node: Multiplex_Channels
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'

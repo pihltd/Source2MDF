@@ -1,0 +1,20 @@
+datafile: '/media/sf_VMShare/CRDCSubmissionModel/CRDC_SDM_ACTIVE_TDP.xlsx'
+workingpath: '/media/sf_VMShare/CRDCSubmissionModel/'
+loadsheetpath: '/media/sf_VMShare/CRDCSubmissionModel/CRDCLoadsheets/'
+handle: 'crdc_submission'
+version: '0.0.1'
+mdffiles:
+  - "Model"
+  - "PropDefinitions"
+  - "Terms"
+#  - Model: 'crdc_submission.yml'
+#  - PropDefinitions: 'crdc_submission_properties.yml'
+#  - Terms: 'crdc_submisison_terms.yml'
+headers:
+  nodeheader: "Node (HC)"
+  propheader: "Property (HC)"
+  cdeheader: "CDE (HC)"
+  domainheader: "Domain (HC)"
+  typeheader: "Type (HC)"
+  reqheader: "Required (HC)"
+  templateheader: "Template (HC)"
