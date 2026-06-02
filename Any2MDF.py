@@ -117,34 +117,36 @@ def main(args):
     
     # {'handle': property name, 'value':cde name, 'origin_version': cde version, 'origin_name': Source of the CDE, 'origin_id':cde idenfier, 'origin_definition': CDE Definition}
     propinfo = mappings['properties']
+    nodecount = 0
+    propcount = 0
     with Progress() as p:
-        nodetask = p.add_task("Procesing nodes...", total=len(mdf.nodes.keys()))
-        #proptask = p.add_task("Processing properties...", total=len(proplist))
-        while not p.finished:
-            #n.update(t, advance=1)
-            for node in mdf.nodes.keys():
-                p.update(nodetask, advance=1)
-                node_df = starting_info[node]
-                proplist = mdf.nodes[node].props
-                #with Progress() as p:
-                #    s = p.add_task("Processing properties...", total=len(proplist))
-                #    while not p.finished:
-                        #p.update(s, advance=1)
-                for prop in proplist:
-                    #p.update(proptask, advance=1)
-                    prop_df = node_df[node_df[propinfo['property_name']] == prop]
-                    for index, row in prop_df.iterrows():
-                        if propinfo['cde_id'] != 'None':
-                            cdeid = row[propinfo['cde_id']]
-                        else:
-                            cdeid = None
-                        if propinfo['cde_version'] != 'None':
-                            cdeversion = row[propinfo['cde_version']]
-                        else:
-                            cdeversion = None
-                        cdeinfo = crdclib.getCDEInfo(cdeid=cdeid, version=cdeversion)
-                        terminfo = {'handle': prop, 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid, 'origin_definition': cdeinfo['cdedef']}
-                        mdf = crdclib.mdfAnnotateTerms(mdfmodel=mdf, nodename=node, propname=prop, termdict=terminfo)
+        nodetotal = len(mdf.nodes.keys())
+        proptotal = len(mdf.props.keys())
+        
+        print(f"Nodetotal is {nodetotal}")
+        nodetask = p.add_task("Procesing nodes...", total=nodetotal)
+        proptask = p.add_task("Processing properties...", total=proptotal)
+        for node in mdf.nodes.keys():
+            node_df = starting_info[node]
+            proplist = mdf.nodes[node].props
+            for prop in proplist:
+                prop_df = node_df[node_df[propinfo['property_name']] == prop]
+                for index, row in prop_df.iterrows():
+                    if propinfo['cde_id'] != 'None':
+                        cdeid = row[propinfo['cde_id']]
+                    else:
+                        cdeid = None
+                    if propinfo['cde_version'] != 'None':
+                        cdeversion = row[propinfo['cde_version']]
+                    else:
+                        cdeversion = None
+                    cdeinfo = crdclib.getCDEInfo(cdeid=cdeid, version=cdeversion)
+                    terminfo = {'handle': prop, 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid, 'origin_definition': cdeinfo['cdedef']}
+                    mdf = crdclib.mdfAnnotateTerms(mdfmodel=mdf, nodename=node, propname=prop, termdict=terminfo)
+                propcount = propcount+1
+                p.update(task_id=proptask, completed=propcount+1)
+            nodecount = nodecount+1
+            p.update(task_id=nodetask, completed=nodecount+1)
 
     #########################################################
     #                                                       #
@@ -186,38 +188,9 @@ def main(args):
         taginfo = configs['taginfo']
         mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='nodetags', tagentity='node', mdf=mdf, mappings=mappings)
 
-        '''if len(taginfo['nodetags']) >= 1:
-            #mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='nodetags', tagentity='node', mdf=mdf)
-            nodelist = mdf.nodes.keys()
-            for node in nodelist: 
-                node_df = starting_info[node]
-                taglocationlist = taginfo['nodetags']
-                for taglocation in taglocationlist:
-                    for tagname, location in taglocation.items():
-                        #This is where node tagging and prop tagging diverge
-                        tagvalues = node_df[location].unique().tolist()
-                        for tagvalue in tagvalues:
-                            mdf = crdclib.mdfAddTags(mdf, 'node', node, {'key': tagname, 'value': tagvalue})'''
         
         if len(taginfo['propertytags']) >= 1:
             mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='propertytags', tagentity='property', mdf=mdf, mappings=mappings)
-            '''nodelist = mdf.nodes.keys()
-            for node in nodelist:
-                node_df = starting_info[node]
-                taglocationlist = taginfo['propertytags']
-                for taglocation in taglocationlist:
-                    for tagname, location in taglocation.items():
-                        #This is where node tagging and prop tagging diverge
-                        proplist = mdf.nodes[node].props.keys()
-                        propdflocation = mappings['properties']['property_name']
-                        for prop in proplist:
-                            for index, row in node_df.iterrows():
-                                if row[propdflocation] == prop:
-                                    tagvalue = src.nodeParser.tagValueTranslate(row[location])
-                                    mdf = crdclib.mdfAddTags(mdfmodel=mdf, objecttype='property', objectkey=(node, prop), tagdict={'key': tagname, 'value': tagvalue})'''
-                                
-        
-
 
 
     #########################################################
