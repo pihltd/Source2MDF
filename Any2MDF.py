@@ -1,15 +1,17 @@
 # In theory the generic spreadsheet to MDF generator
 import pandas as pd
-from crdclib import crdclib
+#from crdclib import crdclib
 import argparse
-import bento_mdf
 from bento_meta.model import Model
 import sys
 import numpy as np
-import json
 from rich.progress import Progress
 
 import src.nodeParser
+
+sys.path.append('../')
+from CRDCLib.src.crdclib import crdclib
+    
 
 def main(args):
 
@@ -201,8 +203,7 @@ def main(args):
     
     if args.verbose >= 1:
         print(f"Writing files to {configs['output_file_directory']}")
-    crdclib.mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])
-            
+    crdclib.mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])            
     
             
 
