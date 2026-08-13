@@ -12,6 +12,38 @@ import src.nodeParser
 sys.path.append('../')
 from CRDCLib.src.crdclib import crdclib
     
+def mdfAddEDPEnum(mdfmodel, nodename, propname, termdictlist):
+    """ The new EDP (Extended Data Property) feature requires that both a Term section and an Enum section exist for a property.
+    The Term section serves to indicate what the property is, and the Enum section now allows a Term-like object to define an MDB list of permissible values.
+
+    :para mdf: A valid MDF model
+    :type mdf: An MDF model object
+    :param nodename: The name of the node the property belongs to 
+    :type nodename: String
+    :param propname: The name of the proptery to be annotated with an Enum
+    :type propname: String
+    :param termdict: A list of dictionary containg the same information a a Term:  [{'handle': property name, 'value':cde name, 'origin_version': cde version, 'origin_name': Source of the CDE, 'origin_id':cde idenfier, 'origin_definition': CDE Definition}]
+    :type termdict: Python list
+    :return: An updated MDF model object
+    :rtype: MDF model object
+    """
+
+    if nodename in list(mdfmodel.nodes):
+        if (nodename, propname) in list(mdfmodel.props):
+            propobj = mdfmodel.props[nodename, propname]
+            termlist = []
+            for termdict in termdictlist:
+                termobj = Term(termdict)
+                #termlist.append(Term(termdict))
+            #if propobj.value_domain != 'value_set':
+            #    propobj.value_domain = 'value_set'
+            if propobj.value_domain != 'enum':    #If value domain is set to enum, the only thing that happens is Type is set to enum.
+                propobj.value_domain = 'enum'
+                mdfmodel.annotate(propobj, termobj) #Borks with a message that the term already exists
+            #mdfmodel.add_terms(propobj, termobj)
+            #mdfmodel.add_terms(propobj, *termlist)
+            #mdfmodel.add_terms(propobj, *termdictlist)  Borks with not a term object
+    return mdfmodel
 
 def main(args):
 
@@ -149,6 +181,55 @@ def main(args):
                 p.update(task_id=proptask, completed=propcount+1)
             nodecount = nodecount+1
             p.update(task_id=nodetask, completed=nodecount+1)
+
+
+
+    #########################################################
+    #                                                       #
+    #                  EDP Enum                             #
+    #                                                       #
+    #########################################################
+    if configs['edp_enums']:
+        if args.verbose >= 1:
+            print("Adding EDP Enum sections to properties")
+        propinfo = mappings['properties']
+        nodecount = 0
+        propcount = 0
+        with Progress() as pb:
+            nodetotal = len(mdf.nodes.keys())
+            proptotal = len(mdf.props.keys())
+            nodetask = p.add_task("Procesing EDP Nodes...", total=nodetotal)
+            proptask = p.add_task("Processing EDP Props...", total=proptotal)
+            for node in mdf.nodes.keys():
+                node_df = starting_info[node]
+                proplist = mdf.nodes[node].props
+                for prop in proplist:
+                    prop_df = node_df[node_df[propinfo['property_name']] == prop]
+                    for index, row in prop_df.iterrows():
+                        if propinfo['cde_id'] != 'None':
+                            cdeid = row[propinfo['cde_id']]
+                        else:
+                            cdeid = None
+                        if propinfo['cde_version'] != 'None':
+                            cdeversion = row[propinfo['cde_version']]
+                        else:
+                            cdeversion = None
+                        cdeinfo = crdclib.getCDEInfo(cdeid=cdeid, version=cdeversion)
+                        #terminfo = {'handle': prop, 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid, 'origin_definition': cdeinfo['cdedef']}
+                        #terminfo = {'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid, 'origin_definition': cdeinfo['cdedef']}
+                        #thingamabob = str({'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid, 'origin_definition': cdeinfo['cdedef']})
+                        #terminfo = {'handle':thingamabob}
+                        terminfo = {'handle': prop, 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid}
+                        mdf = mdfAddEDPEnum(mdfmodel=mdf, nodename=node, propname=prop, termdictlist=[terminfo])
+                    propcount = propcount+1
+                    p.update(task_id=proptask, completed=propcount+1)
+                nodecount = nodecount+1
+                p.update(task_id=nodetask, completed=nodecount+1)
+
+
+
+
+
 
     #########################################################
     #                                                       #
