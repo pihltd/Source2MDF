@@ -8,6 +8,8 @@ source_sheet_delimiter: tab
 source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\IDCModel\2026-5-26-Imaging submission data model.xlsx'
 # Path to output directory
 output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+#Enable EDP Enum sections
+edp_enums: True
 mappings:
   # In a multi-tab spreadsheet, list all tabs to be ignored
   excluded_tabs:

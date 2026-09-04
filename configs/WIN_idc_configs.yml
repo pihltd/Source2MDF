@@ -10,11 +10,12 @@ excludetabs:
 edgesheet: 'Relationships between nodes'
 handle: NCIISM
 version: '0.0.4'
+edp_enums: True
 #mdffile: 'nci_imaging_submission_model.yml'
 mdffiles:
-  - Model: 'nci_imaging_submission_model.yml'
-  - PropDefinitions: 'nci_imaging_submission_model_properties.yml'
-  - Terms: 'nci_imaging_submission_model_terms.yml'
+  - Model: 'edp_nci_imaging_submission_model.yml'
+  - PropDefinitions: 'edp_nci_imaging_submission_model_properties.yml'
+  - Terms: 'edp_nci_imaging_submission_model_terms.yml'
 #edges:
 #  - handle: of_dataset
 #    desc: "Dataset reltaed information"
