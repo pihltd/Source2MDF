@@ -4,9 +4,18 @@ from crdclib import crdclib
 import numpy as np
 
 def trimList(inputlist):
+    #print(f"InputList: {inputlist}")
     outputlist = []
     for entry in inputlist:
-        outputlist.append(entry.strip())
+        #entry = entry.lower()
+        if ";" in entry:
+            entry = entry.split(";")[0]
+        #print(f"Trimlist Entry: {entry}")
+        elif ":" in entry:
+            entry = entry.split(":")[0]
+        if entry not in outputlist:
+            outputlist.append(entry.strip())
+    #print(f"Returned list: {outputlist}")
     return outputlist
 
 
@@ -51,7 +60,7 @@ def csvNodeParse(configs):
     source_df = pd.read_csv(configs['source_sheet_file'], sep=separators[configs['source_sheet_delimiter']])
     return trimList(source_df[configs['node']].unique().tolist())
 
-def xlDataFramer(nodelist, xlfile, mappings, sheetlist):
+def xlDataFramer(nodedict, xlfile, mappings, sheetlist):
     """Reads an Excel workbook and returns a dictionary of dataframes
     
     :param nodelist: List of nodes in the model
@@ -64,16 +73,20 @@ def xlDataFramer(nodelist, xlfile, mappings, sheetlist):
     :rtype: Python dictionary"""
 
     final = {}
-
-    for nodename in nodelist:
+    newnodelist = []
+    print("Starting Dataframe creation")
+    for lcnodename, ucnodename in nodedict.items():
         if mappings['nodes'] == 'tab':
-            temp_df = pd.read_excel(xlfile, nodename)
-            final[nodename] = temp_df
+            temp_df = pd.read_excel(xlfile, ucnodename)
+            print(f"UC Nodename: {ucnodename}\nTemp Dataframe:\n{temp_df}\n")
+            final[lcnodename] = temp_df
         else:
             temp_df = pd.read_excel(xlfile, sheetlist[0])
-            node_df = temp_df[temp_df[mappings['nodes'].strip()] == nodename]
-            final[nodename] = node_df
-    return final
+            node_df = temp_df[temp_df[mappings['nodes'].strip()] == ucnodename]
+            if not node_df.empty:
+                final[lcnodename] = node_df
+                newnodelist.append(lcnodename)
+    return final, newnodelist
 
 def isReqParse(isreq):
     isreqoptions = {
@@ -136,26 +149,29 @@ def xlTagIt(starting_info, taginfo, tagtag, tagentity, mdf, mappings=None):
 
     if len(taginfo[tagtag]) >= 1:
             nodelist = mdf.nodes.keys()
-            for node in nodelist: 
-                node_df = starting_info[node]
-                taglocationlist = taginfo[tagtag]
-                for taglocation in taglocationlist:
-                    for tagname, location in taglocation.items():
-                        if tagentity == 'node':
-                            tagvalues = node_df[location].unique().tolist()
-                            for tagvalue in tagvalues:
-                                mdf = crdclib.mdfAddTags(mdfmodel=mdf,objecttype=tagentity, objectkey=node, tagdict={'key': tagname, 'value': tagvalue})
-                        elif tagentity == 'property':
-                            proplist = mdf.nodes[node].props.keys()
-                            propdflocation = mappings['properties']['property_name']
-                            for prop in proplist:
-                                for index, row in node_df.iterrows():
-                                    if row[propdflocation] == prop:
-                                        tagvalue = tagValueTranslate(row[location])
-                                        mdf = crdclib.mdfAddTags(mdfmodel=mdf, objecttype=tagentity, objectkey=(node, prop), tagdict={'key': tagname, 'value': tagvalue})
-                        else:
-                            print(f"{tagentity} is not a recognized MDF object type")
-                            sys.exit(0)
+            #print(f"xlTagIT nodelist: {nodelist}")
+            #print(f"xlTagIT starting info keys: {list(starting_info.keys())}")
+            for node in nodelist:
+                if node in starting_info.keys(): 
+                    node_df = starting_info[node]
+                    taglocationlist = taginfo[tagtag]
+                    for taglocation in taglocationlist:
+                        for tagname, location in taglocation.items():
+                            if tagentity == 'node':
+                                tagvalues = node_df[location].unique().tolist()
+                                for tagvalue in tagvalues:
+                                    mdf = crdclib.mdfAddTags(mdfmodel=mdf,objecttype=tagentity, objectkey=node, tagdict={'key': tagname, 'value': tagvalue})
+                            elif tagentity == 'property':
+                                proplist = mdf.nodes[node].props.keys()
+                                propdflocation = mappings['properties']['property_name']
+                                for prop in proplist:
+                                    for index, row in node_df.iterrows():
+                                        if row[propdflocation] == prop:
+                                            tagvalue = tagValueTranslate(row[location])
+                                            mdf = crdclib.mdfAddTags(mdfmodel=mdf, objecttype=tagentity, objectkey=(node, prop), tagdict={'key': tagname, 'value': tagvalue})
+                            else:
+                                print(f"{tagentity} is not a recognized MDF object type")
+                                sys.exit(0)
 
                             
     return mdf
