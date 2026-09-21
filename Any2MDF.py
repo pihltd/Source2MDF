@@ -2,18 +2,12 @@
 import pandas as pd
 #from crdclib import crdclib
 import argparse
-from bento_meta.model import Model, Term, ValueSet, Property
+from bento_meta.model import Model, Term, Property
 import sys
 import numpy as np
 from rich.progress import Progress
-from bento_mdf import MDFWriter
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
-import json
-import math
-
 import src.nodeParser
+import sys
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -22,7 +16,7 @@ sys.path.append('../')
 from CRDCLib.src.crdclib import crdclib
 
 
-def mdfBuildProperty(node, prop_info):
+def mdfBuildProperty(node, prop_info, verbose=0):
     propdict = {'handle': prop_info['prop'],
                 "_parent_handle": node,
                 'is_required': prop_info['isreq'],
@@ -30,195 +24,80 @@ def mdfBuildProperty(node, prop_info):
                 'desc': prop_info['desc']}
     if 'iskey' in prop_info:
         propdict['is_key'] = prop_info['iskey']
+    if verbose >= 2:
+        print(f"In mdfBuildProp returning the property of\n{propdict}")
     propobj = Property(propdict)
     return propobj
 
-def mdfbuildTerm(propdict, propinfo, node_df):
-    prop_df = node_df.loc[node_df[propinfo['property_name']] == propdict['prop']]
-    for index, row in prop_df.iterrows():
-        print(f"Name Check:  {row[propinfo['cde_id']]} Type: {type(row[propinfo['cde_id']])}")
-        if type(row[propinfo['cde_id']]) is not int:
-            return None
-        else:
-            print("Did not match any nan detection")
-            cdeid = row[propinfo['cde_id']]
-            if propinfo['cde_version'] != 'None':
-                cdeversion = row[propinfo['cde_version']]
-            else:
-                cdeversion = None
-            cdeinfo = getCDEInfo(cdeid=cdeid, version=cdeversion)
-            #cdeinfo = crdclib.getCDEInfo(cdeid=cdeid, version=cdeversion)
-            handle = propdict['prop']
-            terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'CRDC', 'origin_id': cdeid}
-            return Term(terminfo)
 
-
-
-def mdfAddEDP2Prop(propdict, propobj, propinfo, node_df):
-    if propobj.value_domain != 'value_set':
-        propobj.value_domain = 'value_set'
-    prop_df = node_df.loc[node_df[propinfo['property_name']] == propdict['prop']]
-    for index, row in prop_df.iterrows():
-        if propinfo['cde_id'] != 'None':
-            cdeid = row[propinfo['cde_id']]
-        else:
-            cdeid = None
-        if propinfo['cde_version'] != 'None':
-            cdeversion = row[propinfo['cde_version']]
-        else:
+def mdfBuildTerm(handle, row, verbose=0):        
+#def mdfBuildTerm(handle, propinfo, row, verbose=0):
+    #if (type(row[propinfo['cde_id']])) is np.float64:
+    if (type(row['cde_id'])) is np.float64:
+        return None
+    else:
+        #if type(row[propinfo['cde_version']]) is np.float64:
+        if type(row['cde_version']) is np.float64:
             cdeversion = None
-        cdeinfo = crdclib.getCDEInfo(cdeid=cdeid, version=cdeversion)
-        edp_handle = f"EDP_{propdict['prop']}"
-        terminfo = {'handle': edp_handle, 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'CRDC', 'origin_id': cdeid}
-        terminfo2 = {'handle': propdict['prop'], 'value': cdeinfo['cdename'], 'origin_version': cdeinfo['cdever'], 'origin_name': 'caDSR', 'origin_id': cdeid}
-        #print(f"Term Info : {terminfo}")
-        edpobj = Term(terminfo)
-        #print(f"EDP Object: {edpobj.get_attr_dict()}")
-        valobj = ValueSet({'handle':propdict['prop']})
-        #print(f"ValueObject: {valobj}")
-        valobj.edp_terms[0] = edpobj
-        #print(f"Valobject EDP Terms: {valobj.edp_terms}")
-        propobj.value_set = valobj
-        #print(f"Returning propobject value set {propobj.value_set.get_attr_dict()}")
-        #print(f"Value Set: {propobj.value_set}")
-        #print(f"Value Set Terms: {propobj.value_set.terms}")
-        #print(f"Just terms: {propobj.terms}")
-        #print(f"Just values: {propobj.values}")
-    return propobj, terminfo2
-    
-    
+        else:
+            #cdeversion = row[propinfo['cde_version']]
+            cdeversion = row['cde_version']
+        #cdeinfo = crdclib.getCDEInfo(cdeid=row[propinfo['cde_id']], version=cdeversion)
+        cdeinfo = crdclib.getCDEInfo(cdeid=row['cde_id'], version=cdeversion)
+        if cdeinfo['cdever']:
+            version = str(cdeinfo['cdever'])
+        else:
+            version = cdeinfo['cdever']
+        
+        #terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': version, 'origin_name': 'caDSR', 'origin_id': row[propinfo['cde_id']]}
+        terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': version, 'origin_name': 'caDSR', 'origin_id': int(row['cde_id'])}
+        if verbose >= 2:
+            print(f"In mdfBuildTerm returingin the Term object of\n{terminfo}")
+        return Term(terminfo)
 
 
-def buildPropList(node, startinginfo, mappings):
+
+def buildPropList(node, startinginfo, mappings, verbose=0):
     proplist = []
     propinfo = mappings['properties']
     node_df = startinginfo[node]
-    print(f"building proplist node DF: {node_df}")
+    #
+    #  Set the negative defaults for the values so I'm not doing a ton if if/else
+    isreq = 'No'
+    iskey = 'No'
+    property_type = None
+    description = None
+    #
     for index, row in node_df.iterrows():
-        property_name = row[propinfo['property_name'].strip()]
+        #property_name = row[propinfo['property_name'].strip()]
+        property_name = row['property_name'].strip()
         if propinfo['property_req'] != 'None':
-            if row[propinfo['property_req']] is not np.nan:
-                isreq = src.nodeParser.isReqParse(row[propinfo['property_req']].strip())
-            else:
-                isreq = 'No'
-        else:
-            isreq = 'No'
+            #if row[propinfo['property_req']] is not np.nan:
+            if type(row['property_req']) is not np.float64:
+                #isreq = src.nodeParser.isReqParse(row[propinfo['property_req']].strip())
+                isreq = src.nodeParser.isReqParse(row['property_req'].strip())
+
         if propinfo['property_key'] != 'None':
-            iskey = src.nodeParser.isKeyParse(row[propinfo['property_key'].strip()])
-        else:
-            iskey = 'No'
+            #iskey = src.nodeParser.isKeyParse(row[propinfo['property_key'].strip()])
+            if type(row['property_key']) is not float:
+                iskey = src.nodeParser.isKeyParse(row['property_key'].strip())
+
         if propinfo['property_type'] != 'None':
-            property_type = row[propinfo['property_type'].strip()]
-        else:
-            property_type = None
+            if type(row['property_type']) is not float:
+                property_type = row['property_type'].strip()
+
         if propinfo['property_description'] != 'None':
-            description = row[propinfo['property_description'].strip()]
-        else:
-            description = None
+            #description = row[propinfo['property_description'].strip()]
+            if type(row['property_description']) is not float:
+                description = row['property_description'].strip()
+
         proplist.append({'prop': property_name, 'isreq': isreq, 'iskey': iskey, 'val': property_type, 'desc': description})
+    if verbose >= 2:
+        print(f"Returning propertylist:\n{proplist}")
     return proplist
 
 
-
-def mdfWriteModelFiles(mdf, sectionlist, writedir):
-    """
-    Writes out an mdf model object to one or more YAML files.  Does some sorting to get the YAML in proper order (Handle/Version/Nodes/Properties)
-
-    :param mdf: MDF Model Object
-    :type mdf: MDF model
-    :param sectionlist: A list of the sections that should be printed.  Allowed value are Model, PropDefinitions, Terms, Relationships.
-    :type sectionlist: List
-    :param writedir: The direcotory to write the MDF files into
-    :type writedir: String
-    """
-
-    tempdict = MDFWriter(mdf).mdf
-    mdfdict = {}
-    allowedsectionlist = ['Handle', 'Version', 'Nodes', 'Relationships', 'PropDefinitions', 'Terms']
-
-
-    #Sorts keys for order in yaml
-    for entry in allowedsectionlist:
-        if entry in tempdict.keys():
-            mdfdict[entry] = tempdict[entry]
-    for key in tempdict.keys():
-        if key not in allowedsectionlist:
-            mdfdict[key] = tempdict[key]
-
-    if len(sectionlist) > 1:
-        for section in sectionlist:
-            if section in allowedsectionlist:
-                if section != 'Model':
-                    filename = f"{writedir}{mdf.handle}-model-{section.lower()}.yml"
-                    printnode = {}
-                    printnode[section] = mdfdict.pop(section, None)
-                    print(f"Writing to file {filename}")
-                    crdclib.writeYAML(filename=filename, jsonobj=printnode)
-    #Now write out whatever is left.  If Model is only section, it all gets printed
-    filename = f"{writedir}{mdf.handle}-model.yml"
-    print(f"Writing to file {filename}")
-    crdclib.writeYAML(filename=filename, jsonobj=mdfdict)
-    
-    
-    
-def getCDEInfo(cdeid, version=None):
-    """Instead of the full record, this just returns the CDE Name, CDE Definition, and CDE version.  If no version is supplied, the latest version is returned.  Used mostly in conjunction with MDF models.
-
-    :param cde_id: CDE Public identifier
-    :type cde_id: Integer
-    :param cde_version: The version of the CDE to be queried.  If not supplied the latest version will be returned
-    :type cde_version: String, optional
-    :rtype: Dictionary ('cdename':name of the CDE, 'cdedef': CDE defintion, 'cdever': CDE version)
-    """
-
-    definition = None
-    cdename = None
-    cdeversion = None
-    '''if version in [None, np.nan, 'nan']:
-        print("ID only query")
-        url = "https://cadsrapi.cancer.gov/rad/NCIAPI/1.0/api/DataElement/"+str(cdeid)
-    else:
-        print("ID and Version query")
-        url = "https://cadsrapi.cancer.gov/rad/NCIAPI/1.0/api/DataElement/"+str(cdeid)+"?version="+str(version)'''
-    headers = {'accept':'application/json'}
-    
-    
-    url = "https://cadsrapi.cancer.gov/rad/NCIAPI/1.0/api/DataElement/"+str(cdeid)
-
-    try:
-        retry = Retry(total=5, backoff_factor=2, status_forcelist=[429, 500, 502, 503, 504])
-        adapter = HTTPAdapter(max_retries=retry)
-        session = requests.Session()
-        session.mount('https://', adapter)
-        results = session.get(url=url, headers=headers, timeout=180)
-    except requests.exceptions.HTTPError as e:
-        print(e)
-    if results.status_code == 200:
-        results = json.loads(results.content.decode())
-        if results['DataElement'] is not None:
-            
-            '''if 'preferredName' in results['DataElement']:
-                cdename = results['DataElement']['preferredName']
-            else:
-                cdename = results['DataElement']['longName']
-            if 'preferredDefinition' in results['DataElement']:
-                definition = results['DataElement']['preferredDefinition']
-            else:
-                definition = results['DataElement']['definition']'''
-            
-            cdename = results['DataElement']['longName']
-            definition = results['DataElement']['definition']
-            cdeversion = results['DataElement']['version']
-    else:
-        cdename = 'caDSR Name Error'
-    returninfo = {'cdename':cdename, 'cdedef':definition, 'cdever':cdeversion}
-    #print(f"Returning caSDR Info for {cdeid} Version {version} and version is {type(version)}:  {returninfo}")
-    #return {'cdename':cdename, 'cdedef':definition, 'cdever':cdeversion}
-    return returninfo
-
-
-    
-    
+   
 
 def main(args):
 
@@ -277,88 +156,101 @@ def main(args):
         print("Creating staring dataframes")
 
     if configs['source_sheet_type'] == 'xlsx':
-        starting_info, nodelist = src.nodeParser.xlDataFramer(nodedict=nodedict, xlfile=xlfile, mappings=mappings, sheetlist=sheetlist)
+        temp_starting_info, nodelist = src.nodeParser.xlDataFramer(nodedict=nodedict, xlfile=xlfile, mappings=mappings, sheetlist=sheetlist)
+        starting_info = {}
+        for node, df in temp_starting_info.items():
+            #print(f"PreRename for node {node}\n{df}\n")
+            #print(f"Postrename\n{src.nodeParser.dfColumnRenamer(df=df, mappings=mappings)}")
+            starting_info[node] = src.nodeParser.dfColumnRenamer(df=df, mappings=mappings)
+        
         if args.verbose >= 2:
             for node, df in starting_info.items():
                 print(f"Node: {node}\nDataframe:\n{df}\n\n")
+    #sys.exit(0)
     
-    # Clean out any entries whre the property is missing:
+    # Clean out any entries where the property is missing:
     for node, temp_df in starting_info.items():
-        temp_df = temp_df[temp_df[mappings['properties']['property_name']].notna()]
-        #Force the columns, properties, and domains to lowercase
-        temp_df[mappings['nodes']].str.lower()
-        temp_df[mappings['properties']['property_name']].str.lower()
-        temp_df[mappings['domains']].str.lower()
+        #temp_df = temp_df[temp_df[mappings['properties']['property_name']].notna()]
+        temp_df = temp_df[temp_df['property_name'].notna()]  
         starting_info[node] = temp_df
-    
-    print(f"Starting DF:\n{starting_info}")
-        
 
         # For QA purposes Only
         #temp_df = starting_info['Program']
         #starting_info = {}
         #starting_info['Program'] = temp_df
 
-    #########################################################
-    #                                                       #
-    #                  Properties                           #
-    #                                                       #
-    #########################################################
-    
-    # In the era of EDPs, this needs a rethink since the ENUM is an addition to the property.
-    
-    if args.verbose >= 1:
-        print("Adding properties")
-        print(f"Starting Info Keys:  {list(starting_info.keys())}")
-        
-    for node in starting_info.keys():
-        proplist = buildPropList(node=node, startinginfo=starting_info, mappings=mappings)
-        for prop in proplist:
-            if configs['edp_enums'] == 'True':
-                #Oddly, need to add the EDP info first since the annotate function works at the model lever
-                propobj = mdfBuildProperty(node=node, prop_info=prop)
-                propobj, terminfo = mdfAddEDP2Prop(propdict=prop, propobj=propobj, propinfo=mappings['properties'], node_df=starting_info[node])
-                #print(f"Propobj: {propobj}")
-                #print(f"Terms: {propobj.terms}")
-                #print(f"Values: {propobj.values}")
-                #print(f"Node: {node}\t Prop: {prop['prop']}\t Obj: {propobj}\tHandle: {propobj.handle}\nTerm Info: {terminfo}")
-                termobj = Term(terminfo)
-                #valobj = ValueSet({'hanlde':prop['prop']})
-                #valobj.edp_terms[0] = termobj
-                #propobj.value_set = valobj
-                nodeobj = mdf.nodes[node]
-            else:
-                propobj = mdfBuildProperty(node=node, prop_info=prop)
-                nodeobj = mdf.nodes[node]
-                mdf.add_prop(nodeobj, propobj)
-                #Now deal with the Term
-                termobj = mdfbuildTerm(propdict=prop, propinfo=mappings['properties'], node_df=starting_info[node])
-                
-                
-            mdf.add_prop(nodeobj, propobj)
-           
-            # Then need to add the Term.  Currently this is VERY fragile, but it will do for now.
-            print(f"Term is {termobj} and type {type(termobj)}")
-            if termobj is not None:
-                mdf.annotate(propobj, termobj)
-            
-            
-            if args.verbose >= 3:
-                thisprop = mdf.props[(node,prop['prop'])]
-                print(f"The Prop: {thisprop}")
-                print(f"Prop Info: {thisprop.get_attr_dict()}")
-                print(f"Prop Value Set: {thisprop.value_set}")
-                print(f"Pprop Value Set Terms: {thisprop.value_set.terms}")
-                print(f"Prop Value Set Terms Items: {thisprop.value_set.items()}")
-                print(f"Prop Terms: {thisprop.terms}")
-                print(f"Prop Values: {thisprop.values}")
-                print(f"Prop Concepts: {thisprop.concept}")
-                print(f"Prop Concept Terms: {thisprop.concept.terms}")
-                print(f"Prop Concept Term Items: {thisprop.concept.terms.items()}")
-                for key, term in thisprop.concept.terms.items():
-                    print(f"Term values: {term.get_attr_dict()}")
 
- 
+    #########################################################
+    #                                                       #
+    #                  Properties Part Deux                 #
+    #                                                       #
+    #########################################################
+    
+    #In this episode, we try the model.add_edp_term(prop, term) and see how it goes.
+    if args.verbose >= 1:
+            print("Adding properties the model.add_edp_term way")
+            print(f"Starting Info Keys:  {list(starting_info.keys())}")
+            
+            
+    propinfo = mappings['properties']
+    #NOTE:  Removed Progress since it seems to conflict with the detection of np.int64 objects.
+    #with Progress() as np:
+        #nt = np.add_task("Processing nodes...", total=len(starting_info.keys()))
+        #while not np.finished:
+    for node in starting_info.keys():
+        #np.update(nt, advance=1)
+        proplist = buildPropList(node=node, startinginfo=starting_info, mappings=mappings, verbose=args.verbose)
+        #pt = np.add_task(f"Processing properties for node {node}...", total=len(proplist))
+        for prop in proplist:
+            #np.update(pt,advance=1)
+            # Make the prop object and add it to the model
+            propobj = mdfBuildProperty(node=node, prop_info=prop, verbose=args.verbose)
+            nodeobj = mdf.nodes[node]
+            mdf.add_prop(nodeobj, propobj)
+            
+            # If there is a CDE, Create a term object to annotate the property
+            node_df = starting_info[node]
+            #prop_df = node_df.loc[node_df[propinfo['property_name']] == prop['prop']]
+            prop_df = node_df.loc[node_df['property_name'] == prop['prop']]
+            row = prop_df.iloc[0]
+            #print(f"CDE ID is type: {type(row[propinfo['cde_id']])}")
+            #if type(row[propinfo['cde_id']]) is int:
+            #print(f"CDE ID is type: {type(row['cde_id'])}")
+            #print(row)
+            if type(row['cde_id']) in [int, np.int64]:
+                #print(f"For prop {prop['prop']} this row was sent:\n{row}\n")
+                termobj = mdfBuildTerm(handle=prop['prop'], row=row, verbose=args.verbose)
+                if termobj is not None:
+                    mdf.annotate(propobj, termobj)
+                    # If EDPs have been reqeuested, add them to the property
+                    if configs['edp_enums']:
+                        if propobj.value_domain != 'value_set':
+                            propobj.value_domain = 'value_set'
+                        mdf.add_edp_term(propobj, termobj) 
+                
+
+    #print('Term/EDP Check')
+    #props = mdf.props
+    #for prop in props:
+    #    propobj = mdf.props[prop]
+    #    print(f"\nProperty:\t{prop}")
+    #    if propobj.value_set is not None:
+    #        print(f"Prop Value Set:\t{propobj.value_set}")
+    #        print(f"Value Set attr:\t{propobj.value_set.get_attr_dict()}")
+    #        if propobj.value_set.edp_terms:
+    #            print(f"Value Set EDP:\t{propobj.value_set.edp_terms}")
+    #            print(f"Value Set EDP[0]:\t{propobj.value_set.edp_terms[0].get_attr_dict()}")
+    #    prop_concept = mdf.props[prop].concept
+    #    print(f"Prop Concept:\t{prop_concept}")
+    #    if prop_concept is not None:
+    #        concept_terms = prop_concept.terms
+    #        print(f"Concept Terms:\t{concept_terms}")
+    #        print(f"Concept Dictionary:\t{prop_concept.get_attr_dict()}")
+    #    print(f"Prop Terms:\t{propobj.terms}")
+    #    if propobj.concept is not None:
+    #        print(f"Prop Concept Terms: {propobj.concept.terms}")
+    #        for key, term in propobj.concept.terms.items():
+    #            print(f"Term values: {term.get_attr_dict()}")
 
 
     #########################################################
@@ -381,14 +273,16 @@ def main(args):
             edgelist = []
             dst_df = edge_df[edge_df[edgeinfo['edge_dst']] == dstnode]
             for index, row in dst_df.iterrows():
-                handle = f"of_{dstnode}"
-                card = row[edgeinfo['edge_card']]
-                srcnode = row[edgeinfo['edge_src']]
+                handle = f"of_{dstnode}".lower()
+                dstnode = dstnode.lower()
+                card = row[edgeinfo['edge_card']].lower()
+                srcnode = row[edgeinfo['edge_src']].lower()
                 desc = "TBD"
                 edgelist.append({'handle': handle, 'multiplicity': card, 'src': srcnode, 'dst': dstnode, 'desc': desc})
+                print(f"Edge list:\t{edgelist}")
             mdf = crdclib.mdfAddEdges(mdfmodel=mdf, edgelist=edgelist)
 
-    print(f"EDGE CHECK:  {mdf.edges.keys()}")
+    #print(f"EDGE CHECK:  {mdf.edges.keys()}")
 
     #########################################################
     #                                                       #
@@ -399,11 +293,11 @@ def main(args):
         print('Adding tags')
     if 'taginfo' in configs:
         taginfo = configs['taginfo']
-        mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='nodetags', tagentity='node', mdf=mdf, mappings=mappings)
+        mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='nodetags', tagentity='node', mdf=mdf)
 
         
         if len(taginfo['propertytags']) >= 1:
-            mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='propertytags', tagentity='property', mdf=mdf, mappings=mappings)
+            mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='propertytags', tagentity='property', mdf=mdf)
 
 
     #########################################################
@@ -414,8 +308,8 @@ def main(args):
     
     if args.verbose >= 1:
         print(f"Writing files to {configs['output_file_directory']}")
-    mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])
-    #crdclib.mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])                
+    #mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])
+    crdclib.mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])                
     
             
 
@@ -424,6 +318,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--configfile", required=True,  help="Configuration file containing all the input info")
     parser.add_argument('-v', '--verbose', action='count', default=0, help=("Verbosity: -v main section -vv subroutine messages -vvv data returned shown"))
+    parser.add_argument("-p", "--propprint", action=argparse.BooleanOptionalAction, help="Print out the properties after creation.")
 
     args = parser.parse_args()
 

@@ -20,6 +20,69 @@ def trimList(inputlist):
 
 
 
+def dfColumnRenamer(df, mappings):
+    # Rather than muck about with individual column names, rename them to simple names
+    changedict = {}
+    for key, info in mappings.items():
+        if key == 'node':
+            if mappings['nodes'] != 'tab':
+                changedict[info] = key
+        elif key == 'properties':
+            for new, old in mappings['properties'].items():
+                if mappings['properties'][new] != 'None':
+                    changedict[old] = new
+        elif key == 'edge_info':
+            for new,old in mappings['edge_info'].items():
+                if mappings['edge_info'][new] != 'None':
+                    changedict[old] = new
+    df.rename(columns=changedict, inplace=True)
+    
+    #df['cde_id'] = df['cde_id'].apply(lambda x: x.replace('TBD', np.nan))
+    for index, row in df.iterrows():
+        if row['cde_id'] == 'TBD':
+            df.at[index, 'cde_id'] = None
+    
+    #print(df)
+    
+    
+    #Now cast some columns to known datatypes
+    astypedict = {
+        'property_name': str,
+        'property_req': str,
+        'property_key': str,
+        'property_type': str,
+        'property_description': str,
+        'cde_id': int
+    }
+    
+    nokeylist = []
+    # For any column being converted to int, need to turn any NaN into 0
+    df[['cde_id']] = df[['cde_id']].fillna(0)
+    for key in astypedict.keys():
+        if key not in df.columns:
+            nokeylist.append(key)
+    for key in nokeylist:
+        astypedict.pop(key)
+    
+    df = df.astype(astypedict)
+    '''
+    for field, datatype in astypedict.items():
+        if field in df:
+            df = df[field].astype(datatype)
+    #df['nodes'] = df['nodes'].astype(str)
+    #df['property_name'] = df['property_name'].astype(str)
+    #df['property_req'] = df['property_req'].astype(str)
+    #df['property_key'] = df['property_key'].astype(str)
+    #if 'property_type' in df.columns:
+    #    df['property_type'] = df['property_type'].astype(str)
+    #df['property_description'] = df['property_description'].astype(str)
+   # 
+    #df['cde_id'] = df['cde_id'].astype(int)
+    #df['cde_version']
+    '''
+    return df
+
+
 def xlNodeParse(sheetlist, mappings, xlfile):
     """Parses nodes from the source file and returns a list of nodes
 
@@ -60,7 +123,7 @@ def csvNodeParse(configs):
     source_df = pd.read_csv(configs['source_sheet_file'], sep=separators[configs['source_sheet_delimiter']])
     return trimList(source_df[configs['node']].unique().tolist())
 
-def xlDataFramer(nodedict, xlfile, mappings, sheetlist):
+def xlDataFramer(nodedict, xlfile, mappings, sheetlist, verbose=0):
     """Reads an Excel workbook and returns a dictionary of dataframes
     
     :param nodelist: List of nodes in the model
@@ -74,11 +137,11 @@ def xlDataFramer(nodedict, xlfile, mappings, sheetlist):
 
     final = {}
     newnodelist = []
-    print("Starting Dataframe creation")
     for lcnodename, ucnodename in nodedict.items():
         if mappings['nodes'] == 'tab':
             temp_df = pd.read_excel(xlfile, ucnodename)
-            print(f"UC Nodename: {ucnodename}\nTemp Dataframe:\n{temp_df}\n")
+            if verbose >= 2:
+                print(f"UC Nodename: {ucnodename}\nTemp Dataframe:\n{temp_df}\n")
             final[lcnodename] = temp_df
         else:
             temp_df = pd.read_excel(xlfile, sheetlist[0])
@@ -163,10 +226,11 @@ def xlTagIt(starting_info, taginfo, tagtag, tagentity, mdf, mappings=None):
                                     mdf = crdclib.mdfAddTags(mdfmodel=mdf,objecttype=tagentity, objectkey=node, tagdict={'key': tagname, 'value': tagvalue})
                             elif tagentity == 'property':
                                 proplist = mdf.nodes[node].props.keys()
-                                propdflocation = mappings['properties']['property_name']
+                                #propdflocation = mappings['properties']['property_name']
                                 for prop in proplist:
                                     for index, row in node_df.iterrows():
-                                        if row[propdflocation] == prop:
+                                        #if row[propdflocation] == prop:
+                                        if row['property_name'] == prop:
                                             tagvalue = tagValueTranslate(row[location])
                                             mdf = crdclib.mdfAddTags(mdfmodel=mdf, objecttype=tagentity, objectkey=(node, prop), tagdict={'key': tagname, 'value': tagvalue})
                             else:

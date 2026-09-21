@@ -29,7 +29,7 @@ mappings:
     property_name: 'Property (HC)'
     property_req: 'Required (HC)'
     property_key: 'None'
-    property_type: 'None'
+    property_type: 'Type (HC)'
     property_description: 'None'
     cde_id: 'CDE (HC)'
     cde_version: 'CDE version'
