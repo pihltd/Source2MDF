@@ -4,18 +4,14 @@ from crdclib import crdclib
 import numpy as np
 
 def trimList(inputlist):
-    #print(f"InputList: {inputlist}")
     outputlist = []
     for entry in inputlist:
-        #entry = entry.lower()
         if ";" in entry:
             entry = entry.split(";")[0]
-        #print(f"Trimlist Entry: {entry}")
         elif ":" in entry:
             entry = entry.split(":")[0]
         if entry not in outputlist:
             outputlist.append(entry.strip())
-    #print(f"Returned list: {outputlist}")
     return outputlist
 
 
@@ -37,13 +33,10 @@ def dfColumnRenamer(df, mappings):
                     changedict[old] = new
     df.rename(columns=changedict, inplace=True)
     
-    #df['cde_id'] = df['cde_id'].apply(lambda x: x.replace('TBD', np.nan))
     for index, row in df.iterrows():
         if row['cde_id'] == 'TBD':
             df.at[index, 'cde_id'] = None
-    
-    #print(df)
-    
+        
     
     #Now cast some columns to known datatypes
     astypedict = {
@@ -65,21 +58,6 @@ def dfColumnRenamer(df, mappings):
         astypedict.pop(key)
     
     df = df.astype(astypedict)
-    '''
-    for field, datatype in astypedict.items():
-        if field in df:
-            df = df[field].astype(datatype)
-    #df['nodes'] = df['nodes'].astype(str)
-    #df['property_name'] = df['property_name'].astype(str)
-    #df['property_req'] = df['property_req'].astype(str)
-    #df['property_key'] = df['property_key'].astype(str)
-    #if 'property_type' in df.columns:
-    #    df['property_type'] = df['property_type'].astype(str)
-    #df['property_description'] = df['property_description'].astype(str)
-   # 
-    #df['cde_id'] = df['cde_id'].astype(int)
-    #df['cde_version']
-    '''
     return df
 
 
@@ -212,8 +190,6 @@ def xlTagIt(starting_info, taginfo, tagtag, tagentity, mdf, mappings=None):
 
     if len(taginfo[tagtag]) >= 1:
             nodelist = mdf.nodes.keys()
-            #print(f"xlTagIT nodelist: {nodelist}")
-            #print(f"xlTagIT starting info keys: {list(starting_info.keys())}")
             for node in nodelist:
                 if node in starting_info.keys(): 
                     node_df = starting_info[node]
@@ -226,10 +202,8 @@ def xlTagIt(starting_info, taginfo, tagtag, tagentity, mdf, mappings=None):
                                     mdf = crdclib.mdfAddTags(mdfmodel=mdf,objecttype=tagentity, objectkey=node, tagdict={'key': tagname, 'value': tagvalue})
                             elif tagentity == 'property':
                                 proplist = mdf.nodes[node].props.keys()
-                                #propdflocation = mappings['properties']['property_name']
                                 for prop in proplist:
                                     for index, row in node_df.iterrows():
-                                        #if row[propdflocation] == prop:
                                         if row['property_name'] == prop:
                                             tagvalue = tagValueTranslate(row[location])
                                             mdf = crdclib.mdfAddTags(mdfmodel=mdf, objecttype=tagentity, objectkey=(node, prop), tagdict={'key': tagname, 'value': tagvalue})
