@@ -7,7 +7,8 @@ source_sheet_delimiter: tab
 #Full path to file
 source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\CRDCSubmissionModel\CRDC_SDM_ACTIVE.xlsx'
 # Path to output directory
-output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+#output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+output_file_directory: 'C:\Users\pihltd\Documents\GitHub\crdc-submission-model\model-desc\'
 # How to handle printing files
 fileprinting:
 # File sections to be output as separate files
@@ -53,7 +54,7 @@ mappings:
     edge_card: 'Cardinality'
 model_info:
   handle: 'SDM'
-  version: '0.0.2'
+  version: '0.0.3'
 taginfo:
   nodetags:
     - 'Category': 'Domain (HC)'
