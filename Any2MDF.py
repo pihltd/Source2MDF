@@ -63,7 +63,10 @@ def mdfBuildTerm(handle, row, origin, cde=True, verbose=0):
         else:
             version = cdeinfo['cdever']
         
-        terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': version, 'origin_name': origin, 'origin_id': int(row['cde_id'])}
+        if cde:
+            terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': version, 'origin_name': origin, 'origin_id': str(row['cde_id']), 'origin_definition': cdeinfo['cdedef']}
+        else:
+            terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': version, 'origin_name': origin, 'origin_id': str(row['cde_id'])}
         
         return Term(terminfo)
         
@@ -270,13 +273,15 @@ def main(args):
     #########################################################
     if args.verbose >= 1:
         print('Adding tags')
+    #Scenario 1 (SDM Case), tags are in spreadsheet
     if 'taginfo' in configs:
         taginfo = configs['taginfo']
         mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='nodetags', tagentity='node', mdf=mdf)
-
-        
         if len(taginfo['propertytags']) >= 1:
             mdf = src.nodeParser.xlTagIt(starting_info=starting_info, taginfo=taginfo, tagtag='propertytags', tagentity='property', mdf=mdf)
+    #Scenario 2 (NCIISM case) tags are hand coded in configs.
+    elif 'tags' in configs:
+        mdf = src.nodeParser.addStaticTags(mdf=mdf, taglist=configs['tags'],verbose=args.verbose)
 
 
     #########################################################
@@ -287,7 +292,10 @@ def main(args):
     
     if args.verbose >= 1:
         print(f"Writing files to {configs['output_file_directory']}")
-    crdclib.mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])                
+    if 'fileprinting' in configs.keys():
+        crdclib.mdfWriteModelFiles(mdf=mdf, sectionlist=configs['fileprinting']['secctionlist'], writedir=configs['output_file_directory'], filenamedict=configs['fileprinting'])
+    else:
+        crdclib.mdfWriteModelFiles(mdf=mdf, sectionlist=['Model', 'PropDefinitions', 'Terms'], writedir=configs['output_file_directory'])                
     
             
 

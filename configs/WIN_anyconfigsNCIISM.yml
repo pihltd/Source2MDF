@@ -7,7 +7,19 @@ source_sheet_delimiter: tab
 #Full path to file
 source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\IDCModel\2026-5-26-Imaging submission data model.xlsx'
 # Path to output directory
-output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+#output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+output_file_directory: 'C:\Users\pihltd\Documents\GitHub\nci-imaging-submission-model\model-desc\'
+#Printing instructions
+fileprinting:
+# File sections to be output as separate files
+  secctionlist:
+    - 'Model'
+    - 'PropDefinitions'
+    - 'Terms'
+  # Each type in the sectionlist should have a file name if the automated way isn't desired.
+  model: 'nci_imaging_submission_model.yml'
+  propdefinitions: 'nci_imaging_submission_model_properties.yml'
+  terms: 'nci_imaging_submission_model_terms.yml'
 #Enable EDP Enum sections
 edp_enums: True
 mappings:
@@ -39,4 +51,73 @@ mappings:
     edge_card: 'Cardinality'
 model_info:
   handle: 'NCIISM'
-  version: '0.0.1'
+  version: '0.0.5'
+tags:
+  - node: Program
+    nodeReq: True
+    category: 'administrative'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Dataset
+    nodeReq: True
+    category: 'study'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Subject
+    nodeReq: True
+    category: 'case'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Procedure
+    nodeReq: True
+    category: 'case'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: File
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Diagnosis
+    nodeReq: True
+    category: 'case'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Investigator
+    nodeReq: True
+    category: 'administrative'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Related_Work
+    nodeReq: True
+    category: 'administrative'
+    assignment: core
+    template: 'Yes'
+    class: primary
+  - node: Radiology
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+  - node: Histopathology
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+  - node: Multiplex_Imaging
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'
+  - node: Multiplex_Channels
+    nodeReq: True
+    category: 'data file'
+    assignment: core
+    template: 'Yes'

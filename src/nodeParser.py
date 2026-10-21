@@ -215,3 +215,12 @@ def xlTagIt(starting_info, taginfo, tagtag, tagentity, mdf, mappings=None):
     return mdf
 
 
+def addStaticTags(mdf, taglist, verbose=0):
+    for tag in taglist:
+        for tagname, tagvalue in tag.items():
+            tagname = tagname.lower()
+            if tagname != 'node':
+                if verbose >= 2:
+                    print(f"Datamodel: {mdf}\nNode: {tag['node'].lower()}\n TagName: {tagname}\nTagValue: {tagvalue}\n")
+                mdf = crdclib.mdfAddTags(mdf, 'node', tag['node'].lower(), {'key':tagname, 'value':tagvalue})
+    return mdf
