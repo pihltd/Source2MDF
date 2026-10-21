@@ -1,6 +1,6 @@
 # In theory the generic spreadsheet to MDF generator
 import pandas as pd
-from crdclib import crdclib
+#from crdclib import crdclib
 import argparse
 from bento_meta.model import Model, Term, Property
 import numpy as np
@@ -12,16 +12,30 @@ from alive_progress import alive_bar
 import warnings
 warnings.filterwarnings("ignore")
 
-#sys.path.append('../')
-#from CRDCLib.src.crdclib import crdclib
+import sys
+sys.path.append('../')
+from CRDCLib.src.crdclib import crdclib
 
 
-def mdfBuildProperty(node, prop_info, verbose=0):
+def mdfBuildProperty(node, prop_info, datatype='string', verbose=0):
+    dataTypeTranslation = {
+        'CHARACTER': 'string',
+        'ALPHANUMERIC': 'string',
+        'NUMBER': 'float',
+        'DATE': 'date',
+        'Integer': 'integer',
+        'Numeric Alpha DVG': 'string'
+    }
+    if datatype in dataTypeTranslation.keys():
+        datatype = dataTypeTranslation[datatype]
     propdict = {'handle': prop_info['prop'],
                 "_parent_handle": node,
                 'is_required': prop_info['isreq'],
-                'value_domain': prop_info['val'],
-                'desc': prop_info['desc']}
+                'value_domain': datatype,
+                'desc': prop_info['desc'],
+                }
+    if prop_info['prop'] == 'nan':
+        print(f"Nan Prop {propdict}")
     if 'iskey' in prop_info:
         propdict['is_key'] = prop_info['iskey']
     if verbose >= 2:
@@ -30,10 +44,13 @@ def mdfBuildProperty(node, prop_info, verbose=0):
     return propobj
 
 
-def mdfBuildTerm(handle, row, origin, verbose=0):
+def mdfBuildTerm(handle, row, origin, cde=True, verbose=0):
+    #enum = False
+    #datatype = None
     if origin not in ['caDSR', 'EDP']:
         return None
     if row['cde_id'] == 0:
+        #return None, enum, datatype
         return None
     else:
         if math.isnan(row['cde_version']):
@@ -47,10 +64,19 @@ def mdfBuildTerm(handle, row, origin, verbose=0):
             version = cdeinfo['cdever']
         
         terminfo = {'handle': handle, 'value': cdeinfo['cdename'], 'origin_version': version, 'origin_name': origin, 'origin_id': int(row['cde_id'])}
-        if verbose >= 2:
-            print(f"In mdfBuildTerm returingin the Term object of\n{terminfo}")
+        
         return Term(terminfo)
-
+        
+        # Adding checks for Enum and Data Type
+        #if cde:
+            #if cdeinfo['cdetype'].lower() == 'enumerated':
+            #    enum = True
+            #datatype = cdeinfo['cdedatatype']
+            #print(f"Returning enum: {enum}\tdatatype: {datatype}\tTermobj: {terminfo}")
+        #    return Term(terminfo)
+           # return Term(terminfo), enum, datatype
+        #else:
+        #    return Term(terminfo)
 
 
 def buildPropList(node, startinginfo, mappings, verbose=0):
@@ -173,8 +199,6 @@ def main(args):
     #                                                       #
     #########################################################
     
-    #In this episode, we try the model.add_edp_term(prop, term) and see how it goes.
-    # TODO: DO NOT add Terms or EDPs if the value is null
     if args.verbose >= 1:
             print("Adding properties to nodes")
     if args.verbose >= 2:
@@ -185,27 +209,26 @@ def main(args):
         for node in starting_info.keys():
             proplist = buildPropList(node=node, startinginfo=starting_info, mappings=mappings, verbose=args.verbose)
             for prop in proplist:
-                # Make the prop object and add it to the model
-                propobj = mdfBuildProperty(node=node, prop_info=prop, verbose=args.verbose)
-                nodeobj = mdf.nodes[node]
-                mdf.add_prop(nodeobj, propobj)
-                
-                # If there is a CDE, Create a term object to annotate the property
-                node_df = starting_info[node]
-                prop_df = node_df.loc[node_df['property_name'] == prop['prop']]
-                row = prop_df.iloc[0]
-                if type(row['cde_id']) in [int, np.int64]:
-                    termobj = mdfBuildTerm(handle=prop['prop'], row=row, origin='caDSR', verbose=args.verbose)
-                    edpmobj = mdfBuildTerm(handle=prop['prop'], row=row, origin='caDSR', verbose=args.verbose)
-                    # The def below can be used if there's a need to have something unique in the EDP
-                    #edpmobj = mdfBuildTerm(handle=prop['prop'], row=row, origin='EDP', verbose=args.verbose)
+                #TODO: Check to see if prop['prop'] is 'nan' and throw away if it is.  Solves a problem in the SDM model
+                if prop['prop'] != 'nan':
+                    node_df = starting_info[node]
+                    prop_df = node_df.loc[node_df['property_name'] == prop['prop']]
+                    row = prop_df.iloc[0]
+                    if type(row['cde_id']) in [int, np.int64]:
+                        termobj = mdfBuildTerm(handle=prop['prop'], row=row, origin='caDSR', cde=True, verbose=args.verbose)
+                        edpobj = mdfBuildTerm(handle=prop['prop'], row=row, origin='caDSR', cde=False, verbose=args.verbose)
+                    # Now build the property
+                    propobj = mdfBuildProperty(node=node, prop_info=prop, verbose=args.verbose)
+                    # Add the prop to the model
+                    nodeobj = mdf.nodes[node]
+                    mdf.add_prop(nodeobj, propobj)
+                    # Add terms and EDPs if they exist
                     if termobj is not None:
                         mdf.annotate(propobj, termobj)
-                        # If EDPs have been reqeuested, add them to the property
                         if configs['edp_enums']:
                             if propobj.value_domain != 'value_set':
                                 propobj.value_domain = 'value_set'
-                            mdf.add_edp_term(propobj, edpmobj)
+                            mdf.add_edp_term(propobj, edpobj)
             nodebar()
                 
 
@@ -242,7 +265,7 @@ def main(args):
 
     #########################################################
     #                                                       #
-    #                  Tags                                 #
+    #                  Tags                                 #quite
     #                                                       #
     #########################################################
     if args.verbose >= 1:
