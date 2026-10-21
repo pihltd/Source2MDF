@@ -8,6 +8,17 @@ source_sheet_delimiter: tab
 source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\CRDCSubmissionModel\CRDC_SDM_ACTIVE.xlsx'
 # Path to output directory
 output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+# How to handle printing files
+fileprinting:
+# File sections to be output as separate files
+  secctionlist:
+    - 'Model'
+    - 'PropDefinitions'
+    - 'Terms'
+  # Each type in the sectionlist should have a file name if the automated way isn't desired.
+  model: 'crdc-submission-model.yml'
+  propdefinitions: 'crdc-submission-model-properties.yml'
+  terms: 'crdc-submission-model-terms.yml'
 # Setting to control use of EDP 
 edp_enums: True
 mappings:

@@ -287,7 +287,10 @@ def main(args):
     
     if args.verbose >= 1:
         print(f"Writing files to {configs['output_file_directory']}")
-    crdclib.mdfWriteModelFiles(mdf, ['Model', 'PropDefinitions', 'Terms'], configs['output_file_directory'])                
+    if 'fileprinting' in configs.keys():
+        crdclib.mdfWriteModelFiles(mdf=mdf, sectionlist=configs['fileprinting']['secctionlist'], writedir=configs['output_file_directory'], filenamedict=configs['fileprinting'])
+    else:
+        crdclib.mdfWriteModelFiles(mdf=mdf, sectionlist=['Model', 'PropDefinitions', 'Terms'], writedir=configs['output_file_directory'])                
     
             
 

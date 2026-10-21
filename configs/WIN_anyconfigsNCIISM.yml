@@ -8,6 +8,17 @@ source_sheet_delimiter: tab
 source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\IDCModel\2026-5-26-Imaging submission data model.xlsx'
 # Path to output directory
 output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
+#Printing instructions
+fileprinting:
+# File sections to be output as separate files
+  secctionlist:
+    - 'Model'
+    - 'PropDefinitions'
+    - 'Terms'
+  # Each type in the sectionlist should have a file name if the automated way isn't desired.
+  model: 'nci_imaging_submission_model.yml'
+  propdefinitions: 'nci_imaging_submission_model_properties.yml'
+  terms: 'nci_imaging_submission_model_terms.yml'
 #Enable EDP Enum sections
 edp_enums: True
 mappings:
