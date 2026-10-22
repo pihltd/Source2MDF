@@ -9,6 +9,8 @@ source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\IDCModel\2026-5-26-Imaging
 # Path to output directory
 #output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
 output_file_directory: 'C:\Users\pihltd\Documents\GitHub\nci-imaging-submission-model\model-desc\'
+# Validate final output:
+validate: False
 #Printing instructions
 fileprinting:
 # File sections to be output as separate files

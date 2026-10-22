@@ -6,6 +6,8 @@ from bento_meta.model import Model, Term, Property
 import numpy as np
 import src.nodeParser
 import math
+import glob
+import bento_mdf
 
 from alive_progress import alive_bar
 
@@ -16,6 +18,15 @@ import sys
 sys.path.append('../')
 from CRDCLib.src.crdclib import crdclib
 
+def stringCleaning(inputstring):
+    # Trim leading and trailing whitespaces
+    inputstring = inputstring.strip()
+    #Replace any spaces with underscore
+    inputstring = inputstring.replace(" ", "_")
+    #Replace any dashes with underscore
+    inputstring = inputstring.replace("-", "_")
+    
+    return inputstring
 
 def mdfBuildProperty(node, prop_info, datatype='string', verbose=0):
     dataTypeTranslation = {
@@ -28,7 +39,9 @@ def mdfBuildProperty(node, prop_info, datatype='string', verbose=0):
     }
     if datatype in dataTypeTranslation.keys():
         datatype = dataTypeTranslation[datatype]
-    propdict = {'handle': prop_info['prop'],
+    propname = stringCleaning(prop_info['prop'])
+    
+    propdict = {'handle': propname,
                 "_parent_handle": node,
                 'is_required': prop_info['isreq'],
                 'value_domain': datatype,
@@ -152,10 +165,13 @@ def main(args):
             print("Adding Nodes")
     
         nodelist = src.nodeParser.xlNodeParse(sheetlist=sheetlist, mappings=mappings, xlfile=xlfile)
+        nodelist = [stringCleaning(x) for x in nodelist]
         nodedict = {}
         for node in nodelist:
             nodedict[node.lower()] = node
         nodelist = [x.lower() for x in nodelist]
+        
+   
         if args.verbose >= 2:
             print(f"Returned nodelist: {nodelist}")
             print(f"Nodedict: {nodedict}")
@@ -297,7 +313,24 @@ def main(args):
     else:
         crdclib.mdfWriteModelFiles(mdf=mdf, sectionlist=['Model', 'PropDefinitions', 'Terms'], writedir=configs['output_file_directory'])                
     
-            
+    #########################################################
+    #                                                       #
+    #                  Validation                           #
+    #                                                       #
+    #########################################################
+    
+    if configs['validtate']:
+        if args.verbose >= 1:
+            print(f"Validating model from {configs['output_file_directory']}")
+        
+        #TODO: This is just brute forcing a directory.  Fine for now, but should specify files
+        filelist = []
+        for file in glob.glob(configs['output_file_directory'] + '*.yml'):
+            filelist.append(file)
+        
+        testmdf = bento_mdf.MDF(*filelist)
+        val = bento_mdf.MDFDataValidator(testmdf)
+        print(val)
 
 
 if __name__ == "__main__":

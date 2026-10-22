@@ -9,6 +9,8 @@ source_sheet_file: 'C:\Users\pihltd\Documents\VMShare\CRDCSubmissionModel\CRDC_S
 # Path to output directory
 #output_file_directory: 'C:\Users\pihltd\Documents\VMShare\modeltest\'
 output_file_directory: 'C:\Users\pihltd\Documents\GitHub\crdc-submission-model\model-desc\'
+# Validate final output:
+validate: False
 # How to handle printing files
 fileprinting:
 # File sections to be output as separate files
